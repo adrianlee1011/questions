@@ -1,5 +1,6 @@
 import nltk
 import sys
+import os
 
 FILE_MATCHES = 1
 SENTENCE_MATCHES = 1
@@ -48,7 +49,13 @@ def load_files(directory):
     Given a directory name, return a dictionary mapping the filename of each
     `.txt` file inside that directory to the file's contents as a string.
     """
-    raise NotImplementedError
+    items = os.listdir(directory)
+    files_dict = dict()
+    for text in items:
+        path = os.path.join(directory, text)
+        with open(path, 'r', encoding="utf-8") as f:
+            data = f.read().replace('\n', ' ')
+            files_dict[text] = data
 
 
 def tokenize(document):
@@ -95,4 +102,5 @@ def top_sentences(query, sentences, idfs, n):
 
 
 if __name__ == "__main__":
-    main()
+    # main()
+    load_files("corpus")
