@@ -2,6 +2,7 @@ import nltk
 import sys
 import os
 import string
+import numpy as np
 
 FILE_MATCHES = 1
 SENTENCE_MATCHES = 1
@@ -84,7 +85,20 @@ def compute_idfs(documents):
     Any word that appears in at least one of the documents should be in the
     resulting dictionary.
     """
-    raise NotImplementedError
+    docs_list = documents.keys()
+    word_idf = dict()
+    for current_doc, words in documents.items():
+        for word in words:
+            if word not in word_idf:
+                count = 0
+                for doc in docs_list:
+                    if word in documents[doc]:
+                        count += 1
+                        continue
+                idf = np.log(len(docs_list)) / count
+                word_idf[word] = idf
+
+    return word_idf
 
 
 def top_files(query, files, idfs, n):
@@ -110,4 +124,4 @@ def top_sentences(query, sentences, idfs, n):
 
 if __name__ == "__main__":
     # main()
-    print(tokenize("""In computer science, artificial intelligence (AI), sometimes called machine intelligence, is intelligence demonstrated by machines, in contrast to the natural intelligence displayed by humans and animals. Leading AI textbooks define the field as the study of "intelligent agents": any device that perceives its environment and takes actions that maximize its chance of successfully achieving its goals. Colloquially, the term "artificial intelligence" is often used to describe machines (or computers) that mimic "cognitive" functions that humans associate with the human mind, such as "learning" and "problem solving".As machines become increasingly capable, tasks considered to require "intelligence" are often removed from the definition of AI, a phenomenon known as the AI effect. A quip in Tesler's Theorem says "AI is whatever hasn't been done yet." For instance, optical character recognition is frequently excluded from things considered to be AI, having become a routine technology. Modern machine capabilities generally classified as AI include successfully understanding human speech, competing at the highest level in strategic game systems (such as chess and Go), autonomously operating cars, intelligent routing in content delivery networks, and military simulations."""))
+    compute_idfs({'a.txt': ['a', 'b', 'abcd']})
