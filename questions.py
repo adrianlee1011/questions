@@ -3,6 +3,7 @@ import sys
 import os
 import string
 import numpy as np
+import collections
 
 FILE_MATCHES = 1
 SENTENCE_MATCHES = 1
@@ -22,28 +23,33 @@ def main():
     }
     file_idfs = compute_idfs(file_words)
 
-    # Prompt user for query
-    query = set(tokenize(input("Query: ")))
+    while True:
+        # Prompt user for query
+        query = set(tokenize(input("Query: ")))
 
-    # Determine top file matches according to TF-IDF
-    filenames = top_files(query, file_words, file_idfs, n=FILE_MATCHES)
+        # Determine top file matches according to TF-IDF
+        filenames = top_files(query, file_words, file_idfs, n=FILE_MATCHES)
 
-    # Extract sentences from top files
-    sentences = dict()
-    for filename in filenames:
-        for passage in files[filename].split("\n"):
-            for sentence in nltk.sent_tokenize(passage):
-                tokens = tokenize(sentence)
-                if tokens:
-                    sentences[sentence] = tokens
+        # Extract sentences from top files
+        sentences = dict()
+        for filename in filenames:
+            for passage in files[filename].split("\n"):
+                for sentence in nltk.sent_tokenize(passage):
+                    tokens = tokenize(sentence)
+                    if tokens:
+                        sentences[sentence] = tokens
 
-    # Compute IDF values across sentences
-    idfs = compute_idfs(sentences)
+        # Compute IDF values across sentences
+        idfs = compute_idfs(sentences)
 
-    # Determine top sentence matches
-    matches = top_sentences(query, sentences, idfs, n=SENTENCE_MATCHES)
-    for match in matches:
-        print(match)
+        # Determine top sentence matches
+        matches = top_sentences(query, sentences, idfs, n=SENTENCE_MATCHES)
+        for match in matches:
+            print(match)
+
+        stop = input("Continue? y/n: ")
+        if stop == 'n':
+            break
 
 
 def load_files(directory):
@@ -58,6 +64,7 @@ def load_files(directory):
         with open(path, 'r', encoding="utf-8") as f:
             data = f.read().replace('\n', ' ')
             files_dict[text] = data
+    return files_dict
 
 
 def tokenize(document):
@@ -119,8 +126,9 @@ def top_files(query, files, idfs, n):
             all_files[key] += tf_idf
 
     n_top_files = {k: v for k, v in sorted(all_files.items(), key=lambda item: item[1])}
-
-    return list(n_top_files)[:n]
+    top_files_list = list(n_top_files.keys())
+    top_files_list.reverse()
+    return top_files_list[:n]
 
 
 def top_sentences(query, sentences, idfs, n):
@@ -131,7 +139,36 @@ def top_sentences(query, sentences, idfs, n):
     the query, ranked according to idf. If there are ties, preference should
     be given to sentences that have a higher query term density.
     """
-    raise NotImplementedError
+    sentence_list = list(sentences)
+    sentence_idf = {sentence: 0 for sentence in sentence_list}
+    for sentence in sentence_list:
+        for word in query:
+            if word in sentences[sentence]:
+                sentence_idf[sentence] += idfs[word]
+    
+    n_top_sentences = {k: v for k, v in sorted(sentence_idf.items(), key=lambda item: item[1], reverse=True)}
+    sort_by_term_density = []
+    i = 0
+    for key, value in n_top_sentences.items():
+        if len(sort_by_term_density) == 0:
+            sort_by_term_density.append((key, value))
+        if value == sort_by_term_density[i][1]:
+            sort_by_term_density.append((key, value))
+    
+    td = {}
+    for i in range(len(sort_by_term_density)):
+        words = sentences[sort_by_term_density[i][0]]
+        count = 0
+        for word in words:
+            if word in query:
+                count += 1
+        qtd = count / len(words)
+        td[sort_by_term_density[i][0]] = qtd
+
+    top_sentences_sorted = {k: v for k, v in sorted(td.items(), key=lambda item: item[1], reverse=True)}
+
+    top_sentences_list = list(top_sentences_sorted.keys())
+    return top_sentences_list[:n]
 
 
 if __name__ == "__main__":
